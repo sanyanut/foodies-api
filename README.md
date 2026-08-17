@@ -20,7 +20,7 @@ Backend for the **Foodies** app — TypeScript · Express 5 · Prisma 7 · Postg
 | -------------- | ---------------------------------------------------------- |
 | Language       | TypeScript (run directly with `tsx`)                       |
 | Framework      | Express 5                                                  |
-| ORM / DB       | Prisma 7 + `@prisma/adapter-pg` + PostgreSQL 16            |
+| ORM / DB       | Prisma 7 + `@prisma/adapter-pg` + PostgreSQL 18            |
 | Validation     | Zod                                                        |
 | Auth (ready)   | JWT access + refresh (separate secrets), bcrypt            |
 | Uploads (ready)| Multer (memory) → Cloudinary                               |

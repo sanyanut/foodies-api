@@ -1,12 +1,12 @@
 # Local development stack for the Foodies API:
-#   - postgres : PostgreSQL 16 database
+#   - postgres : PostgreSQL 18 database
 #   - app      : the Express API (independent container)
 #
 # In production these run as SEPARATE managed services (Render Postgres +
 # Render Web Service); this compose file only exists for local development.
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18
     container_name: foodies-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -15,7 +15,10 @@ services:
     ports:
       - "${DB_HOST_PORT}:5432"
     volumes:
-      - foodies_pgdata:/var/lib/postgresql/data
+      # PostgreSQL 18+ Docker images store the cluster in a version-specific
+      # subdirectory, so the volume is mounted at /var/lib/postgresql (NOT
+      # /var/lib/postgresql/data, which was the convention up to PG 17).
+      - foodies_pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
