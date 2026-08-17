@@ -78,17 +78,33 @@ Check it works:
 
 ## Getting started (Docker — recommended for local dev)
 
-Spins up PostgreSQL **and** the API as two independent containers, runs
-migrations automatically, then starts the server:
+The whole workflow can run **entirely in Docker** via npm scripts.
+
+Backend **+** database together (builds, applies migrations, starts the API in
+watch mode with hot reload):
 
 ```bash
-docker compose up --build
+npm run docker:dev
 ```
 
-Then, to load the sample data into the running DB:
+Load the sample data into the running DB:
 
 ```bash
-docker compose exec app npm run seed
+npm run docker:seed
+```
+
+Stop everything:
+
+```bash
+npm run docker:down
+```
+
+Or, if you prefer to run the API on the host and only the **database** in Docker:
+
+```bash
+npm run docker:db        # start Postgres (detached)
+npm run prisma:deploy    # apply migrations from the host
+npm run dev              # run the API on the host
 ```
 
 API → http://localhost:3000 · Postgres → localhost:5432.
@@ -105,6 +121,10 @@ API → http://localhost:3000 · Postgres → localhost:5432.
 | `npm run prisma:deploy` | Apply existing migrations (CI / prod)            |
 | `npm run prisma:studio` | Open Prisma Studio                               |
 | `npm run seed`          | Seed the database from `prisma/seed-data`        |
+| `npm run docker:dev`    | **Backend + DB in Docker** (build, migrate, watch) |
+| `npm run docker:db`     | **Only the database** in Docker (detached)       |
+| `npm run docker:seed`   | Seed the DB inside the running app container      |
+| `npm run docker:down`   | Stop & remove the Docker stack                   |
 
 ## Data model
 

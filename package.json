@@ -18,7 +18,12 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:reset": "prisma migrate reset",
     "prisma:studio": "prisma studio",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "docker:dev": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:seed": "docker compose exec app npm run seed",
+    "docker:db": "docker compose up -d postgres",
+    "docker:db:down": "docker compose stop postgres"
   },
   "keywords": [
     "foodies",

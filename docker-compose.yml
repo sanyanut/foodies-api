@@ -49,8 +49,10 @@ services:
       postgres:
         condition: service_healthy
     # Regenerate the Prisma client (the bind mount hides the image's copy),
-    # apply migrations against the container database, then start the API.
-    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start"
+    # apply migrations against the container database, then start the API in
+    # watch mode. The source bind mount + CHOKIDAR_USEPOLLING give hot reload,
+    # so "local development entirely in Docker" restarts on every code change.
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
 
 volumes:
   foodies_pgdata:
