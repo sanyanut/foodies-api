@@ -7,7 +7,7 @@ import { pinoHttp } from "pino-http";
 import swaggerUi from "swagger-ui-express";
 import createHttpError from "http-errors";
 
-import { allowedOrigins } from "./config/env.ts";
+import { allowedOrigins, isProduction } from "./config/env.ts";
 import logger from "./common/logger.ts";
 import { generateOpenApiDocument } from "./common/swagger.ts";
 import { apiLimiter } from "./middleware/rate-limiter.ts";
@@ -51,7 +51,8 @@ export function createApp() {
     res.json({
       name: "Foodies API",
       status: "ok",
-      docs: "/api-docs",
+      // Swagger is disabled in production, so only advertise it elsewhere.
+      ...(isProduction ? {} : { docs: "/api-docs" }),
       health: "/health",
     });
   });
@@ -59,7 +60,10 @@ export function createApp() {
   app.use("/health", healthRoutes);
 
   // ── API documentation (Swagger UI) ──
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(generateOpenApiDocument()));
+  // Never expose the API docs in production — mount them only outside prod.
+  if (!isProduction) {
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(generateOpenApiDocument()));
+  }
 
   // ── 404 + centralised error handling (must come last) ──
   app.use(notFound);
