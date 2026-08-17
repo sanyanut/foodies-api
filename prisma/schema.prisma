@@ -1,0 +1,172 @@
+// Foodies — Prisma schema.
+//
+// This schema covers the data model for the WHOLE assignment (every endpoint
+// group in the TZ), so future endpoint development already has the tables it
+// needs. Only the dev server + DB connection are wired up in code for now.
+//
+// IDs are strings: the seed data (from the original GoIT dataset) uses Mongo
+// ObjectId strings, and keeping String ids lets that data import with its
+// relationships intact. New records default to a cuid().
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Users & auth ────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipes       Recipe[]
+  testimonials  Testimonial[]
+  favorites     Favorite[]
+  refreshTokens RefreshToken[]
+
+  // Follow graph:
+  //   following = rows where this user is the follower  -> profiles they follow
+  //   followers = rows where this user is being followed -> their followers
+  following Follow[] @relation("follower")
+  followers Follow[] @relation("following")
+
+  @@map("users")
+}
+
+// A user can hold several refresh tokens at once (one per device / browser).
+// Expired or rotated-out tokens are pruned by the auth layer.
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ── Reference data ──────────────────────────────────────────────────────────
+
+model Category {
+  id      String   @id @default(cuid())
+  name    String   @unique
+  recipes Recipe[]
+
+  @@map("categories")
+}
+
+model Area {
+  id      String   @id @default(cuid())
+  name    String   @unique
+  recipes Recipe[]
+
+  @@map("areas")
+}
+
+model Ingredient {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  img         String?
+
+  recipes RecipeIngredient[]
+
+  @@map("ingredients")
+}
+
+// ── Recipes ─────────────────────────────────────────────────────────────────
+
+model Recipe {
+  id           String  @id @default(cuid())
+  title        String
+  description  String?
+  instructions String
+  thumb        String?
+  preview      String?
+  time         Int? // cooking time in minutes
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  areaId String?
+  area   Area?   @relation(fields: [areaId], references: [id])
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ingredients RecipeIngredient[]
+  favoritedBy Favorite[]
+
+  @@index([categoryId])
+  @@index([areaId])
+  @@index([ownerId])
+  @@map("recipes")
+}
+
+// Join table Recipe <-> Ingredient carrying the per-recipe measure.
+model RecipeIngredient {
+  recipeId     String
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  measure      String?
+
+  @@id([recipeId, ingredientId])
+  @@index([ingredientId])
+  @@map("recipe_ingredients")
+}
+
+// ── Testimonials ────────────────────────────────────────────────────────────
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  testimonial String
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([ownerId])
+  @@map("testimonials")
+}
+
+// ── Favorites (drives recipe "popularity") ──────────────────────────────────
+
+model Favorite {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, recipeId])
+  @@index([recipeId])
+  @@map("favorites")
+}
+
+// ── Follows (user follows user) ─────────────────────────────────────────────
+
+model Follow {
+  followerId  String
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
+}

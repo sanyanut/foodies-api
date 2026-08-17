@@ -1,0 +1,56 @@
+# Local development stack for the Foodies API:
+#   - postgres : PostgreSQL 16 database
+#   - app      : the Express API (independent container)
+#
+# In production these run as SEPARATE managed services (Render Postgres +
+# Render Web Service); this compose file only exists for local development.
+services:
+  postgres:
+    image: postgres:16
+    container_name: foodies-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${DB_HOST_PORT}:5432"
+    volumes:
+      - foodies_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: foodies-api
+    ports:
+      - "${APP_PORT}:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      # Inside the compose network the DB host is the service name "postgres",
+      # not "localhost". This overrides DATABASE_URL from .env (dotenv does not
+      # overwrite variables already present in the process environment).
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - POPULAR_RECIPES_CACHE_TTL=${POPULAR_RECIPES_CACHE_TTL}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Regenerate the Prisma client (the bind mount hides the image's copy),
+    # apply migrations against the container database, then start the API.
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start"
+
+volumes:
+  foodies_pgdata:
