@@ -12,7 +12,9 @@ const formatIssues = (error: ZodError): Record<string, string[]> => {
 };
 
 const respondWithValidationError = (res: Response, error: ZodError) =>
-  res.status(400).json({ error: "Validation failed", details: formatIssues(error) });
+  res
+    .status(400)
+    .json({ error: "Validation failed", details: formatIssues(error) });
 
 export const validateBody =
   (schema: ZodType) => (req: Request, res: Response, next: NextFunction) => {
@@ -33,5 +35,8 @@ export const validateQuery =
   (schema: ZodType) => (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.query);
     if (!result.success) return respondWithValidationError(res, result.error);
+    // Express 5 has req.query as read-only getter, so we store
+    // the transformed & validated data in res.locals instead
+    res.locals.query = result.data;
     next();
   };
