@@ -14,6 +14,7 @@ import { apiLimiter } from "./middleware/rate-limiter.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
 import { notFound } from "./middleware/not-found.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
+import usersRoutes from "./modules/users/users.routes.ts";
 
 // Build and configure the Express application (BackEnd task 1: "spin up the dev
 // server — wire up modules, configure CORS, add an error handler"). The app is
@@ -31,7 +32,11 @@ export function createApp() {
       // Empty whitelist => reflect any origin ("*" for development). When
       // ALLOWED_ORIGINS is set, only those origins are allowed.
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        if (
+          !origin ||
+          allowedOrigins.length === 0 ||
+          allowedOrigins.includes(origin)
+        ) {
           callback(null, true);
         } else {
           callback(createHttpError(403, "Not allowed by CORS"));
@@ -58,11 +63,16 @@ export function createApp() {
   });
 
   app.use("/health", healthRoutes);
+  app.use("/users", usersRoutes);
 
   // ── API documentation (Swagger UI) ──
   // Never expose the API docs in production — mount them only outside prod.
   if (!isProduction) {
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(generateOpenApiDocument()));
+    app.use(
+      "/api-docs",
+      swaggerUi.serve,
+      swaggerUi.setup(generateOpenApiDocument()),
+    );
   }
 
   // ── 404 + centralised error handling (must come last) ──
