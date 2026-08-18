@@ -53,6 +53,31 @@ registry.registerPath({
   },
 });
 
+// ── Areas schemas ─────────────────────────────────────────────────────────────
+
+const AreaSchema = registry.register(
+  "Area",
+  z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+);
+
+// ── Areas paths ───────────────────────────────────────────────────────────────
+
+registry.registerPath({
+  method: "get",
+  path: "/areas",
+  tags: ["Areas"],
+  summary: "Get all areas",
+  responses: {
+    200: {
+      description: "List of areas",
+      content: { "application/json": { schema: z.array(AreaSchema) } },
+    },
+  },
+});
+
 // ── Users schemas ─────────────────────────────────────────────────────────────
 
 const UserProfileSchema = registry.register(
