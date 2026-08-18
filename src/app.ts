@@ -14,6 +14,7 @@ import { apiLimiter } from "./middleware/rate-limiter.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
 import { notFound } from "./middleware/not-found.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
+import areasRouter from './modules/areas/areas.routes.ts';
 
 // Build and configure the Express application (BackEnd task 1: "spin up the dev
 // server — wire up modules, configure CORS, add an error handler"). The app is
@@ -58,6 +59,7 @@ export function createApp() {
   });
 
   app.use("/health", healthRoutes);
+  app.use("/areas", areasRouter);
 
   // ── API documentation (Swagger UI) ──
   // Never expose the API docs in production — mount them only outside prod.
