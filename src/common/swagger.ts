@@ -344,6 +344,9 @@ registry.registerPath({
       description: "List of testimonials",
       content: { "application/json": { schema: z.array(TestimonialSchema) } },
     },
+  },
+});
+
 // ── Recipes schemas ───────────────────────────────────────────────────────────────
 
 const RecipeSchema = registry.register(
