@@ -320,6 +320,33 @@ registry.registerPath({
   },
 });
 
+// ── Testimonials schemas ──────────────────────────────────────────────────────
+
+const TestimonialSchema = registry.register(
+  "Testimonial",
+  z.object({
+    id: z.string(),
+    testimonial: z.string(),
+    ownerId: z.string(),
+    createdAt: z.string(),
+  }),
+);
+
+// ── Testimonials paths ────────────────────────────────────────────────────────
+
+registry.registerPath({
+  method: "get",
+  path: "/testimonials",
+  tags: ["Testimonials"],
+  summary: "Get all testimonials",
+  responses: {
+    200: {
+      description: "List of testimonials",
+      content: { "application/json": { schema: z.array(TestimonialSchema) } },
+    },
+  },
+});
+
 // ── Recipes schemas ───────────────────────────────────────────────────────────────
 
 const RecipeSchema = registry.register(
