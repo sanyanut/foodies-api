@@ -294,7 +294,32 @@ registry.registerPath({
     401: unauthorizedResponse,
   },
 });
+// ── Ingredients schemas ───────────────────────────────────────────────────────
 
+const IngredientSchema = registry.register(
+  "Ingredient",
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    img: z.string().nullable(),
+  }),
+);
+
+// ── Ingredients paths ─────────────────────────────────────────────────────────
+
+registry.registerPath({
+  method: "get",
+  path: "/ingredients",
+  tags: ["Ingredients"],
+  summary: "Get all ingredients",
+  responses: {
+    200: {
+      description: "List of ingredients",
+      content: { "application/json": { schema: z.array(IngredientSchema) } },
+    },
+  },
+});
 export function generateOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
 
