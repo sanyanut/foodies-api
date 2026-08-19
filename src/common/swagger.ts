@@ -355,6 +355,14 @@ const popularLimitParam = {
   description: "Number of popular recipes to return (max 4)",
 };
 
+const recipeIdParams = {
+  name: "id",
+  in: "path" as const,
+  required: true,
+  description: "Unique identifer of the recipe",
+  schema: { type: "string" as const },
+};
+
 registry.registerPath({
   method: "get",
   path: "/recipes",
@@ -394,6 +402,24 @@ registry.registerPath({
     400: {
       description: "Validation error (limit is greater than 4)",
     },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/recipes/{id}",
+  tags: ["Recipes"],
+  summary: "Get recipe by ID",
+  description:
+    "Return detailed information about a specific recipe, including its ingredients.",
+  parameters: [recipeIdParams],
+  responses: {
+    200: {
+      description: "Detailed recipe information",
+      content: { "application/json": { schema: RecipeSchema } },
+    },
+    400: { description: "Validation error (empty ID" },
+    404: { description: "Recipe not Found" },
   },
 });
 

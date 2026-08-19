@@ -21,6 +21,12 @@ export async function searchRecipes(query: SearchRecipesQuery) {
       include: {
         category: true,
         area: true,
+        owner: {
+          select: {
+            name: true,
+            avatar: true,
+          },
+        },
       },
     }),
     prisma.recipe.count({ where }),
@@ -50,7 +56,38 @@ export async function getPopularRecipes(limit: number) {
       area: {
         select: { id: true, name: true },
       },
+      owner: {
+        select: {
+          name: true,
+          avatar: true,
+        },
+      },
     },
   });
   return recipes;
+}
+
+export async function GetRecipeById(id: string) {
+  const recipe = await prisma.recipe.findUnique({
+    where: {
+      id: id,
+    },
+    include: {
+      category: {
+        select: { id: true, name: true },
+      },
+      area: {
+        select: { id: true, name: true },
+      },
+      ingredients: {
+        include: {
+          ingredient: true,
+        },
+      },
+      owner: {
+        select: { name: true, avatar: true },
+      },
+    },
+  });
+  return recipe;
 }

@@ -24,7 +24,12 @@ export const GetPopularRecipesQuerySchema = z.object({
     .pipe(z.number().int().min(1).max(4, "limit must be <= 4")),
 });
 
+export const GetRecipeByIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "Recipe ID is required"),
+});
+
 export type SearchRecipesQuery = z.infer<typeof SearchRecipesQuerySchema>;
 export type GetPopularRecipesQuery = z.infer<
   typeof GetPopularRecipesQuerySchema
 >;
+export type GetRecipeByIdParams = z.infer<typeof GetRecipeByIdParamsSchema>;
