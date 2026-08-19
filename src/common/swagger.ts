@@ -78,6 +78,31 @@ registry.registerPath({
   },
 });
 
+// ── Categories schemas ────────────────────────────────────────────────────────
+
+const CategorySchema = registry.register(
+  "Category",
+  z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+);
+
+// ── Categories paths ──────────────────────────────────────────────────────────
+
+registry.registerPath({
+  method: "get",
+  path: "/categories",
+  tags: ["Categories"],
+  summary: "Get all categories",
+  responses: {
+    200: {
+      description: "List of categories",
+      content: { "application/json": { schema: z.array(CategorySchema) } },
+    },
+  },
+});
+
 // ── Users schemas ─────────────────────────────────────────────────────────────
 
 const UserProfileSchema = registry.register(

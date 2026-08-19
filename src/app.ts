@@ -14,7 +14,8 @@ import { apiLimiter } from "./middleware/rate-limiter.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
 import { notFound } from "./middleware/not-found.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
-import areasRouter from "./modules/areas/areas.routes.ts";
+import areasRouter from './modules/areas/areas.routes.ts';
+import categoriesRouter from './modules/categories/categories.routes.ts';
 import usersRoutes from "./modules/users/users.routes.ts";
 import recipesRoutes from "./modules/recipes/recipes.routes.ts";
 
@@ -66,6 +67,7 @@ export function createApp() {
 
   app.use("/health", healthRoutes);
   app.use("/areas", areasRouter);
+  app.use("/categories", categoriesRouter);
   app.use("/users", usersRoutes);
   app.use("/recipes", recipesRoutes);
 
