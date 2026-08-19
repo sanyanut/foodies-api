@@ -319,7 +319,32 @@ registry.registerPath({
     401: unauthorizedResponse,
   },
 });
+// ── Ingredients schemas ───────────────────────────────────────────────────────
 
+const IngredientSchema = registry.register(
+  "Ingredient",
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    img: z.string().nullable(),
+  }),
+);
+
+// ── Ingredients paths ─────────────────────────────────────────────────────────
+
+registry.registerPath({
+  method: "get",
+  path: "/ingredients",
+  tags: ["Ingredients"],
+  summary: "Get all ingredients",
+  responses: {
+    200: {
+      description: "List of ingredients",
+      content: { "application/json": { schema: z.array(IngredientSchema) } },
+    },
+  },
+});
 // ── Testimonials schemas ──────────────────────────────────────────────────────
 
 const TestimonialSchema = registry.register(
@@ -411,7 +436,7 @@ const recipeIdParams = {
   name: "id",
   in: "path" as const,
   required: true,
-  description: "Unique identifer of the recipe",
+  description: "Unique identifier of the recipe",
   schema: { type: "string" as const },
 };
 
@@ -470,8 +495,8 @@ registry.registerPath({
       description: "Detailed recipe information",
       content: { "application/json": { schema: RecipeSchema } },
     },
-    400: { description: "Validation error (empty ID" },
-    404: { description: "Recipe not Found" },
+    400: { description: "Validation error (empty ID)" },
+    404: { description: "Recipe not found" },
   },
 });
 
