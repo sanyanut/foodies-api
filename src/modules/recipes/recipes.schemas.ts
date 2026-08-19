@@ -16,4 +16,15 @@ export const SearchRecipesQuerySchema = z.object({
     .pipe(z.number().int().min(1).max(12, "limit must be <= 12")),
 });
 
+export const GetPopularRecipesQuerySchema = z.object({
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number.parseInt(v) : 4))
+    .pipe(z.number().int().min(1).max(4, "limit must be <= 4")),
+});
+
 export type SearchRecipesQuery = z.infer<typeof SearchRecipesQuerySchema>;
+export type GetPopularRecipesQuery = z.infer<
+  typeof GetPopularRecipesQuerySchema
+>;

@@ -347,6 +347,14 @@ const ingredientParam = {
   description: "Ingredient ID",
 };
 
+const popularLimitParam = {
+  name: "limit",
+  in: "query" as const,
+  required: false,
+  schema: { type: "integer" as const, default: 4, maximum: 4 },
+  description: "Number of popular recipes to return (max 4)",
+};
+
 registry.registerPath({
   method: "get",
   path: "/recipes",
@@ -366,6 +374,25 @@ registry.registerPath({
     },
     400: {
       description: "Validation error (invalid query parameters)",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/recipes/popular",
+  tags: ["Recipes"],
+  summary: "Get popular recipes",
+  description:
+    "Return a list of recipes sorted by the number of times they were added to favorites.",
+  parameters: [popularLimitParam],
+  responses: {
+    200: {
+      description: "List of popular recipes",
+      content: { "application/json": { schema: z.array(RecipeSchema) } },
+    },
+    400: {
+      description: "Validation error (limit is greater than 4)",
     },
   },
 });

@@ -34,3 +34,23 @@ export async function searchRecipes(query: SearchRecipesQuery) {
     totalPages: Math.ceil(total / limit),
   };
 }
+
+export async function getPopularRecipes(limit: number) {
+  const recipes = await prisma.recipe.findMany({
+    take: limit,
+    orderBy: {
+      favoritedBy: {
+        _count: "desc",
+      },
+    },
+    include: {
+      category: {
+        select: { id: true, name: true },
+      },
+      area: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+  return recipes;
+}
