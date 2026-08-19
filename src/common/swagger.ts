@@ -436,7 +436,7 @@ const recipeIdParams = {
   name: "id",
   in: "path" as const,
   required: true,
-  description: "Unique identifer of the recipe",
+  description: "Unique identifier of the recipe",
   schema: { type: "string" as const },
 };
 
@@ -495,8 +495,8 @@ registry.registerPath({
       description: "Detailed recipe information",
       content: { "application/json": { schema: RecipeSchema } },
     },
-    400: { description: "Validation error (empty ID" },
-    404: { description: "Recipe not Found" },
+    400: { description: "Validation error (empty ID)" },
+    404: { description: "Recipe not found" },
   },
 });
 
