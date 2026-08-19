@@ -78,6 +78,31 @@ registry.registerPath({
   },
 });
 
+// ── Categories schemas ────────────────────────────────────────────────────────
+
+const CategorySchema = registry.register(
+  "Category",
+  z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+);
+
+// ── Categories paths ──────────────────────────────────────────────────────────
+
+registry.registerPath({
+  method: "get",
+  path: "/categories",
+  tags: ["Categories"],
+  summary: "Get all categories",
+  responses: {
+    200: {
+      description: "List of categories",
+      content: { "application/json": { schema: z.array(CategorySchema) } },
+    },
+  },
+});
+
 // ── Users schemas ─────────────────────────────────────────────────────────────
 
 const UserProfileSchema = registry.register(
@@ -319,6 +344,131 @@ registry.registerPath({
       description: "List of testimonials",
       content: { "application/json": { schema: z.array(TestimonialSchema) } },
     },
+// ── Recipes schemas ───────────────────────────────────────────────────────────────
+
+const RecipeSchema = registry.register(
+  "Recipe",
+  z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string().nullable(),
+    thumb: z.string().nullable(),
+    time: z.number().nullable(),
+    categoryId: z.string(),
+    areaId: z.string().nullable(),
+  }),
+);
+
+const PaginatedRecipesSchema = registry.register(
+  "PaginatedRecipes",
+  z.object({
+    data: z.array(RecipeSchema),
+    total: z.number().int(),
+    page: z.number().int(),
+    limit: z.number().int(),
+    totalPages: z.number().int(),
+  }),
+);
+
+// ── Recipes path ──────────────────────────────────────────────────────────────────
+
+const categoryParam = {
+  name: "category",
+  in: "query" as const,
+  required: false,
+  schema: { type: "string" as const },
+  description: "Recipe category ID",
+};
+
+const areaParam = {
+  name: "area",
+  in: "query" as const,
+  required: false,
+  schema: { type: "string" as const },
+  description: "Region ID",
+};
+
+const ingredientParam = {
+  name: "ingredient",
+  in: "query" as const,
+  required: false,
+  schema: { type: "string" as const },
+  description: "Ingredient ID",
+};
+
+const popularLimitParam = {
+  name: "limit",
+  in: "query" as const,
+  required: false,
+  schema: { type: "integer" as const, default: 4, maximum: 4 },
+  description: "Number of popular recipes to return (max 4)",
+};
+
+const recipeIdParams = {
+  name: "id",
+  in: "path" as const,
+  required: true,
+  description: "Unique identifer of the recipe",
+  schema: { type: "string" as const },
+};
+
+registry.registerPath({
+  method: "get",
+  path: "/recipes",
+  tags: ["Recipes"],
+  summary: "Search and paginate recipes",
+  parameters: [
+    categoryParam,
+    areaParam,
+    ingredientParam,
+    pageParam,
+    limitParam,
+  ],
+  responses: {
+    200: {
+      description: "Paginated list of recipes",
+      content: { "application/json": { schema: PaginatedRecipesSchema } },
+    },
+    400: {
+      description: "Validation error (invalid query parameters)",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/recipes/popular",
+  tags: ["Recipes"],
+  summary: "Get popular recipes",
+  description:
+    "Return a list of recipes sorted by the number of times they were added to favorites.",
+  parameters: [popularLimitParam],
+  responses: {
+    200: {
+      description: "List of popular recipes",
+      content: { "application/json": { schema: z.array(RecipeSchema) } },
+    },
+    400: {
+      description: "Validation error (limit is greater than 4)",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/recipes/{id}",
+  tags: ["Recipes"],
+  summary: "Get recipe by ID",
+  description:
+    "Return detailed information about a specific recipe, including its ingredients.",
+  parameters: [recipeIdParams],
+  responses: {
+    200: {
+      description: "Detailed recipe information",
+      content: { "application/json": { schema: RecipeSchema } },
+    },
+    400: { description: "Validation error (empty ID" },
+    404: { description: "Recipe not Found" },
   },
 });
 
