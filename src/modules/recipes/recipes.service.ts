@@ -10,7 +10,7 @@ export async function searchRecipes(query: SearchRecipesQuery) {
   if (category) where.categoryId = category;
   if (area) where.areaId = area;
   if (ingredient) {
-    where.ingredient = { some: { ingredientId: ingredient } };
+    where.ingredients = { some: { ingredientId: ingredient } };
   }
 
   const [recipes, total] = await prisma.$transaction([
