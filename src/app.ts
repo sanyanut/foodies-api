@@ -16,7 +16,10 @@ import { notFound } from "./middleware/not-found.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
 import areasRouter from './modules/areas/areas.routes.ts';
 import ingredientsRouter from './modules/ingredients/ingredients.routes.ts';
+import categoriesRouter from './modules/categories/categories.routes.ts';
 import usersRoutes from "./modules/users/users.routes.ts";
+import testimonialsRouter from "./modules/testimonials/testimonials.routes.ts";
+import recipesRoutes from "./modules/recipes/recipes.routes.ts";
 
 // Build and configure the Express application (BackEnd task 1: "spin up the dev
 // server — wire up modules, configure CORS, add an error handler"). The app is
@@ -67,7 +70,10 @@ export function createApp() {
   app.use("/health", healthRoutes);
   app.use("/areas", areasRouter);
   app.use("/ingredients", ingredientsRouter);
+  app.use("/categories", categoriesRouter);
   app.use("/users", usersRoutes);
+  app.use("/testimonials", testimonialsRouter);
+  app.use("/recipes", recipesRoutes);
 
   // ── API documentation (Swagger UI) ──
   // Never expose the API docs in production — mount them only outside prod.
