@@ -295,6 +295,81 @@ registry.registerPath({
   },
 });
 
+// ── Recipes schemas ───────────────────────────────────────────────────────────────
+
+const RecipeSchema = registry.register(
+  "Recipe",
+  z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string().nullable(),
+    thumb: z.string().nullable(),
+    time: z.number().nullable(),
+    categoryId: z.string(),
+    areaId: z.string().nullable(),
+  }),
+);
+
+const PaginatedRecipesSchema = registry.register(
+  "PaginatedRecipes",
+  z.object({
+    data: z.array(RecipeSchema),
+    total: z.number().int(),
+    page: z.number().int(),
+    limit: z.number().int(),
+    totalPages: z.number().int(),
+  }),
+);
+
+// ── Recipes path ──────────────────────────────────────────────────────────────────
+
+const categoryParam = {
+  name: "category",
+  in: "query" as const,
+  required: false,
+  schema: { type: "string" as const },
+  description: "Recipe category ID",
+};
+
+const areaParam = {
+  name: "area",
+  in: "query" as const,
+  required: false,
+  schema: { type: "string" as const },
+  description: "Region ID",
+};
+
+const ingredientParam = {
+  name: "ingredient",
+  in: "query" as const,
+  required: false,
+  schema: { type: "string" as const },
+  description: "Ingredient ID",
+};
+
+registry.registerPath({
+  method: "get",
+  path: "/recipes",
+  tags: ["Recipes"],
+  summary: "Search and paginate recipes",
+  parameters: [
+    categoryParam,
+    areaParam,
+    ingredientParam,
+    pageParam,
+    limitParam,
+  ],
+  responses: {
+    200: {
+      description: "Paginated list of recipes",
+      content: { "application/json": { schema: PaginatedRecipesSchema } },
+    },
+    400: {
+      description: "Validation error (invalid query parameters)",
+    },
+  },
+});
+
 export function generateOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
 
