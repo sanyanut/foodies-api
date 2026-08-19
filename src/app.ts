@@ -15,6 +15,7 @@ import { errorHandler } from "./middleware/error-handler.ts";
 import { notFound } from "./middleware/not-found.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
 import areasRouter from './modules/areas/areas.routes.ts';
+import categoriesRouter from './modules/categories/categories.routes.ts';
 import usersRoutes from "./modules/users/users.routes.ts";
 
 // Build and configure the Express application (BackEnd task 1: "spin up the dev
@@ -65,6 +66,7 @@ export function createApp() {
 
   app.use("/health", healthRoutes);
   app.use("/areas", areasRouter);
+  app.use("/categories", categoriesRouter);
   app.use("/users", usersRoutes);
 
   // ── API documentation (Swagger UI) ──
