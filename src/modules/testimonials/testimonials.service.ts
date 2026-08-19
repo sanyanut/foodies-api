@@ -1,6 +1,8 @@
 import prisma from "../../prisma/prisma.ts";
 
-export const getAllTestimonials = async () => {
-    return await prisma.testimonial.findMany();
-};
+export const getAllTestimonials = () =>
+    prisma.testimonial.findMany({
+        take: 3,
+        include: { owner: { select: { name: true } } },
+    });
 
