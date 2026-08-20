@@ -212,3 +212,29 @@ export async function addFavorite(userId: string, recipeId: string) {
     },
   });
 }
+
+export async function removeFavorite(userId: string, recipeId: string) {
+  const favorite = await prisma.favorite.findUnique({
+    where: {
+      userId_recipeId: {
+        userId,
+
+        recipeId,
+      },
+    },
+  });
+
+  if (!favorite) {
+    throw new Error("NOT_FOUND");
+  }
+
+
+  await prisma.favorite.delete({
+    where: {
+      userId_recipeId: {
+        userId,
+        recipeId,
+      },
+    },
+  });
+}

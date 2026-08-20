@@ -661,6 +661,24 @@ registry.registerPath({
   },
 });
 
+// DELETE /recipes/{id}/favorite
+registry.registerPath({
+  method: "delete",
+  path: "/recipes/{id}/favorite",
+  tags: ["Recipes"],
+  summary: "Remove recipe from favorites",
+  description: "Remove a recipe from the authenticated user's favorite list.",
+  security: bearerSecurity,
+  parameters: [recipeIdParams],
+  responses: {
+    200: { description: "Recipe removed from favorites" },
+    400: { description: "Validation error (invalid ID format)" },
+    401: unauthorizedResponse,
+    404: recipeNotFoundResponse,
+  },
+});
+
+
 export function generateOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
 
