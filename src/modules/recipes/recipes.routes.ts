@@ -51,4 +51,11 @@ router.delete(
   recipesController.deleteRecipeController,
 );
 
+router.post(
+  "/:id/favorite",
+  authenticate,
+  validateParams(recipesSchema.GetRecipeByIdParamsSchema),
+  recipesController.addFavoriteController,
+);
+
 export default router;

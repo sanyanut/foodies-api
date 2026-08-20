@@ -195,3 +195,20 @@ export async function deleteRecipe(ownerId: string, recipeId: string) {
 
   return { message: "Recipe deleted successfully", id: recipeId };
 }
+
+export async function addFavorite(userId: string, recipeId: string) {
+  const recipe = await prisma.recipe.findUnique({
+    where: { id: recipeId },
+  });
+
+  if (!recipe) {
+    throw new Error("NOT_FOUND");
+  }
+
+  return await prisma.favorite.create({
+    data: {
+      userId,
+      recipeId,
+    },
+  });
+}

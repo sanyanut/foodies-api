@@ -117,3 +117,25 @@ export async function deleteRecipeController(
     next(error);
   }
 }
+// POST /recipes/:id/favorite
+export async function addFavoriteController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const userId = req.user?.id as string;
+    const { id: recipeId } = req.params;
+
+    const favorite = await recipesService.addFavorite(userId, recipeId);
+    return res.status(201).json(favorite);
+  } catch (error: any) {
+    if (error.message === "NOT_FOUND") {
+      return res.status(404).json({ message: "Recipe not found" });
+    }
+    if (error.code === "P2002") {
+      return res.status(409).json({ message: "Recipe already in favorites" });
+    }
+    next(error);
+  }
+}
