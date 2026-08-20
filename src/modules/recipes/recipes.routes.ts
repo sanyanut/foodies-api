@@ -1,30 +1,54 @@
 import { Router } from "express";
-import { validateParams, validateQuery } from "../../middleware/validate.ts";
-import { SearchRecipesQuerySchema } from "./recipes.schemas.ts";
+import {
+  validateParams,
+  validateQuery,
+  validateBody,
+} from "../../middleware/validate.ts";
+import { authenticate } from "../../middleware/authenticate.ts";
+import upload from "../../middleware/upload.ts";
+import * as recipesSchema from "./recipes.schemas.ts";
 import * as recipesController from "./recipes.controller.ts";
-import { getPopularRecipesController } from "./recipes.controller.ts";
-import { GetPopularRecipesQuerySchema } from "./recipes.schemas.ts";
-import { GetRecipeByIdParamsSchema } from "./recipes.schemas.ts";
-import { getRecipeByIdController } from "./recipes.controller.ts";
 
 const router = Router();
 
 router.get(
   "/",
-  validateQuery(SearchRecipesQuerySchema),
-  recipesController.searchRecipes,
+  validateQuery(recipesSchema.SearchRecipesQuerySchema),
+  recipesController.searchRecipesController,
 );
 
 router.get(
   "/popular",
-  validateQuery(GetPopularRecipesQuerySchema),
-  getPopularRecipesController,
+  validateQuery(recipesSchema.GetPopularRecipesQuerySchema),
+  recipesController.getPopularRecipesController,
+);
+
+router.get(
+  "/own",
+  authenticate,
+  validateQuery(recipesSchema.GetOwnRecipesQuerySchema),
+  recipesController.getOwnRecipesController,
+);
+
+router.post(
+  "/",
+  authenticate,
+  upload.single("thumb"),
+  validateBody(recipesSchema.CreateRecipeBodySchema),
+  recipesController.createRecipeController,
 );
 
 router.get(
   "/:id",
-  validateParams(GetRecipeByIdParamsSchema),
-  getRecipeByIdController,
+  validateParams(recipesSchema.GetRecipeByIdParamsSchema),
+  recipesController.getRecipeByIdController,
+);
+
+router.delete(
+  "/:id",
+  authenticate,
+  validateParams(recipesSchema.DeleteRecipeParamsSchema),
+  recipesController.deleteRecipeController,
 );
 
 export default router;

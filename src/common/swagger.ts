@@ -6,6 +6,8 @@ import {
 import { z } from "zod";
 
 import { env } from "../config/env.ts";
+import { maximum } from "zod/mini";
+import { response } from "express";
 
 extendZodWithOpenApi(z);
 
@@ -380,10 +382,12 @@ const RecipeSchema = registry.register(
     id: z.string(),
     title: z.string(),
     description: z.string().nullable(),
+    instructions: z.string().optional(),
     thumb: z.string().nullable(),
     time: z.number().nullable(),
     categoryId: z.string(),
     areaId: z.string().nullable(),
+    createdAt: z.string().optional(),
   }),
 );
 
@@ -398,7 +402,52 @@ const PaginatedRecipesSchema = registry.register(
   }),
 );
 
-// ── Recipes path ──────────────────────────────────────────────────────────────────
+export const CreateRecipeBodySchema = registry.register(
+  "CreateRecipeBody",
+  z.object({
+    title: z.string().openapi({ example: "Delicious Pasta" }),
+    description: z
+      .string()
+      .openapi({ example: "Simple and fast homemade recipe" }),
+    instructions: z
+      .string()
+      .openapi({ example: "Boil water, cook pasta, mix with sauce." }),
+    time: z.number().int().min(1).openapi({ example: 15 }),
+    categoryId: z.string().openapi({
+      description: "Valid Category ID from /categories",
+      example: "6462a6cd4c3d0ddd28897f8a",
+    }),
+    areaId: z.string().openapi({
+      description: "Valid Area ID from /areas",
+      example: "6462a6f04c3d0ddd28897f9c",
+    }),
+    ingredients: z.string().openapi({
+      description:
+        "JSON stringified array of ingredients: [{ ingredientId, measure }]",
+      example: JSON.stringify([
+        {
+          ingredientId: "640c2dd963a319ea671e365b",
+          measure: "200g",
+        },
+      ]),
+    }),
+    thumb: z.string().openapi({
+      type: "string",
+      format: "binary",
+      description: "Recipe image file",
+    }),
+  }),
+);
+
+const DeletedRecipeResponseSchema = registry.register(
+  "DeleteRecipeResponse",
+  z.object({
+    message: z.string(),
+    id: z.string(),
+  }),
+);
+
+// ── Recipes params ──────────────────────────────────────────────────────────────────
 
 const categoryParam = {
   name: "category",
@@ -424,12 +473,28 @@ const ingredientParam = {
   description: "Ingredient ID",
 };
 
+const recipeSearchLimitParam = {
+  name: "limit",
+  in: "query" as const,
+  required: false,
+  schema: { type: "integer" as const, default: 12, maximum: 12 },
+  description: "Number of recipes per page (max 12)",
+};
+
 const popularLimitParam = {
   name: "limit",
   in: "query" as const,
   required: false,
   schema: { type: "integer" as const, default: 4, maximum: 4 },
   description: "Number of popular recipes to return (max 4)",
+};
+
+const ownLimitParam = {
+  name: "limit",
+  in: "query" as const,
+  required: false,
+  schema: { type: "integer" as const, default: 9, maximum: 9 },
+  description: "Number of own recipes per page (max 9)",
 };
 
 const recipeIdParams = {
@@ -440,6 +505,11 @@ const recipeIdParams = {
   schema: { type: "string" as const },
 };
 
+const recipeNotFoundResponse = { description: "Recipe not found" };
+
+// ── Recipes paths ───────────────────────────────────────────────────────────────────
+
+// GET /recipes
 registry.registerPath({
   method: "get",
   path: "/recipes",
@@ -450,7 +520,7 @@ registry.registerPath({
     areaParam,
     ingredientParam,
     pageParam,
-    limitParam,
+    recipeSearchLimitParam,
   ],
   responses: {
     200: {
@@ -463,6 +533,7 @@ registry.registerPath({
   },
 });
 
+// GET /recipes/popular
 registry.registerPath({
   method: "get",
   path: "/recipes/popular",
@@ -482,6 +553,54 @@ registry.registerPath({
   },
 });
 
+// GET /recipes/own
+registry.registerPath({
+  method: "get",
+  path: "/recipes/own",
+  tags: ["Recipes"],
+  summary: "Get own recipes",
+  description:
+    "Return a paginated list of recipes created by the authenticated user",
+  security: bearerSecurity,
+  parameters: [pageParam, ownLimitParam],
+  responses: {
+    200: {
+      description: "Paginated list of user's own recipes",
+      content: { "application/json": { schema: PaginatedRecipesSchema } },
+    },
+    401: unauthorizedResponse,
+  },
+});
+
+// POST /recipes
+registry.registerPath({
+  method: "post",
+  path: "/recipes",
+  tags: ["Recipes"],
+  summary: "Create a new recipe",
+  description:
+    "Create a new recipe an optional photo upload. Requires authentication.",
+  security: bearerSecurity,
+  request: {
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: CreateRecipeBodySchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Recipe created successfully",
+      content: { "application/json": { schema: RecipeSchema } },
+    },
+    400: { description: "Validation error (missing fields or invalid data" },
+    401: unauthorizedResponse,
+  },
+});
+
+// GET /recipes/{id}
 registry.registerPath({
   method: "get",
   path: "/recipes/{id}",
@@ -497,6 +616,30 @@ registry.registerPath({
     },
     400: { description: "Validation error (empty ID)" },
     404: { description: "Recipe not found" },
+  },
+});
+
+// DELETE /recipes/{id}
+registry.registerPath({
+  method: "delete",
+  path: "/recipes/{id}",
+  tags: ["Recipes"],
+  summary: "Delete own recipe",
+  description:
+    "Delete a recipe by ID/ Only the author can delete their recipe.",
+  security: bearerSecurity,
+  parameters: [recipeIdParams],
+  responses: {
+    200: {
+      description: "Recipe deleted successfully",
+      content: { "application/json": { schema: DeletedRecipeResponseSchema } },
+    },
+    400: { description: "Validation error (empty ID)" },
+    401: unauthorizedResponse,
+    403: {
+      description: "Forbidden (attempting to delete someone else's recipe)",
+    },
+    404: recipeNotFoundResponse,
   },
 });
 
