@@ -11,7 +11,6 @@ import {
 import {
   deleteExpiredRefreshTokens,
   revokeRefreshToken,
-  revokeAllForUser,
 } from "../../utils/refresh-tokens.ts";
 import type { LoginInput, RegisterInput } from "./auth.schemas.ts";
 
@@ -153,6 +152,11 @@ export const refresh = async (refreshToken: string) => {
   return { accessToken, refreshToken: newRefreshToken };
 };
 
-export const logout = async (userId: string) => {
-  await revokeAllForUser(userId);
+// Log out the current session only — revoke the refresh token carried by this
+// device's cookie (TZ: "deletes the active session"). Other devices stay in.
+// A missing token is a no-op so logout is idempotent.
+export const logout = async (refreshToken: string | undefined) => {
+  if (refreshToken) {
+    await revokeRefreshToken(refreshToken);
+  }
 };

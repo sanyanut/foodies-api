@@ -70,7 +70,10 @@ export const logout = async (req: Request, res: Response) => {
     throw createHttpError(401, "Authentication required");
   }
 
-  await authService.logout(userId);
+  const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as
+    | string
+    | undefined;
+  await authService.logout(refreshToken);
   clearRefreshTokenCookie(res);
   res.status(204).send();
 };

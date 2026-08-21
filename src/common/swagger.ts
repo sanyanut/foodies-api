@@ -195,7 +195,7 @@ registry.registerPath({
     method: "post",
     path: "/auth/logout",
     tags: ["Auth"],
-    summary: "Log out the authenticated user",
+    summary: "Log out — revoke the current session's refresh token",
     security: bearerSecurity,
     responses: {
         204: {

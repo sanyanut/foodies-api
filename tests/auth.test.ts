@@ -283,7 +283,7 @@ describe("POST /auth/logout", () => {
     expect(res.body.error).toBe("Authentication required");
   });
 
-  it("revokes the authenticated user's refresh tokens", async () => {
+  it("revokes the current session and clears the cookie", async () => {
     const loginRes = await request(app).post("/auth/login").send({
       email: "user@gmail.com",
       password: "password123",
@@ -297,5 +297,28 @@ describe("POST /auth/logout", () => {
     expect(cookiePair(refreshCookieFrom(res))).toBe("refreshToken=");
     expect(res.status).toBe(204);
     expect(refreshTokens).toHaveLength(0);
+  });
+
+  it("revokes only the current session, keeping other devices signed in", async () => {
+    await request(app).post("/auth/login").send({
+      email: "user@gmail.com",
+      password: "password123",
+    });
+    const secondLogin = await request(app).post("/auth/login").send({
+      email: "user@gmail.com",
+      password: "password123",
+    });
+
+    expect(refreshTokens).toHaveLength(2);
+    const survivingToken = refreshTokens[0].token;
+
+    const res = await request(app)
+      .post("/auth/logout")
+      .set("Authorization", `Bearer ${secondLogin.body.accessToken}`)
+      .set("Cookie", cookiePair(refreshCookieFrom(secondLogin)));
+
+    expect(res.status).toBe(204);
+    expect(refreshTokens).toHaveLength(1);
+    expect(refreshTokens[0].token).toBe(survivingToken);
   });
 });
