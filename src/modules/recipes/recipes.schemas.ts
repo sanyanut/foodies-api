@@ -89,6 +89,19 @@ export const GetOwnRecipesQuerySchema = z.object({
     .pipe(z.number().int().min(1).max(9, "limit must be <= 9")),
 });
 
+export const GetFavoritesQuerySchema = z.object({
+  page: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number.parseInt(v, 10) : 1))
+    .pipe(z.number().int().min(1, "page must be >= 1")),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number.parseInt(v, 10) : 9))
+    .pipe(z.number().int().min(1).max(9, "limit must be <= 9")),
+});
+
 export const DeleteRecipeParamsSchema = z.object({
   id: z.string().trim().min(1, "Recipe ID is required"),
 });
@@ -101,4 +114,5 @@ export type GetRecipeByIdParams = z.infer<typeof GetRecipeByIdParamsSchema>;
 export type RecipeIngredientInput = z.infer<typeof RecipeIngredientInputSchema>;
 export type CreateRecipeBody = z.infer<typeof CreateRecipeBodySchema>;
 export type GetOwnRecipesQuery = z.infer<typeof GetOwnRecipesQuerySchema>;
+export type GetFavoritesQuery = z.infer<typeof GetFavoritesQuerySchema>;
 export type DeleteRecipeParams = z.infer<typeof DeleteRecipeParamsSchema>;

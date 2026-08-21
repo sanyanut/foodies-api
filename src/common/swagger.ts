@@ -717,6 +717,25 @@ registry.registerPath({
     },
 });
 
+// GET /recipes/favorites
+registry.registerPath({
+    method: "get",
+    path: "/recipes/favorites",
+    tags: ["Recipes"],
+    summary: "Get favorite recipes",
+    description:
+        "Return a paginated list of the authenticated user's favorite recipes",
+    security: bearerSecurity,
+    parameters: [pageParam, ownLimitParam],
+    responses: {
+        200: {
+            description: "Paginated list of favorite recipes",
+            content: { "application/json": { schema: PaginatedRecipesSchema } },
+        },
+        401: unauthorizedResponse,
+    },
+});
+
 // POST /recipes
 registry.registerPath({
     method: "post",
