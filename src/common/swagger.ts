@@ -788,6 +788,42 @@ registry.registerPath({
     },
 });
 
+// POST /recipes/{id}/favorite
+registry.registerPath({
+  method: "post",
+  path: "/recipes/{id}/favorite",
+  tags: ["Recipes"],
+  summary: "Add recipe to favorites",
+  description: "Add a recipe to the authenticated user's favorite list.",
+  security: bearerSecurity,
+  parameters: [recipeIdParams],
+  responses: {
+    201: { description: "Recipe added to favorites" },
+    400: { description: "Validation error (invalid ID format)" },
+    401: unauthorizedResponse,
+    404: recipeNotFoundResponse,
+    409: { description: "Recipe is already in favorites" },
+  },
+});
+
+// DELETE /recipes/{id}/favorite
+registry.registerPath({
+  method: "delete",
+  path: "/recipes/{id}/favorite",
+  tags: ["Recipes"],
+  summary: "Remove recipe from favorites",
+  description: "Remove a recipe from the authenticated user's favorite list.",
+  security: bearerSecurity,
+  parameters: [recipeIdParams],
+  responses: {
+    200: { description: "Recipe removed from favorites" },
+    400: { description: "Validation error (invalid ID format)" },
+    401: unauthorizedResponse,
+    404: recipeNotFoundResponse,
+  },
+});
+
+
 export function generateOpenApiDocument() {
     const generator = new OpenApiGeneratorV3(registry.definitions);
 
