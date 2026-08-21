@@ -1,31 +1,44 @@
-import jwt from "jsonwebtoken";
 import createHttpError from "http-errors";
 import type { NextFunction, Request, Response } from "express";
 
-import { env } from "../config/env.ts";
+import { verifyAccessToken } from "../utils/tokens.ts";
+
+type AuthenticatedUser = {
+  id: string;
+};
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      user?: jwt.JwtPayload;
+      user?: AuthenticatedUser;
     }
   }
 }
 
-// Authorization middleware — verifies the Bearer access token and attaches the
-// decoded payload to `req.user`. Wired up here for the future private routes.
+// Verifies the Authorization: Bearer <token> header and exposes the user id.
 export const authenticate = (req: Request, _res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
+  const authorization = req.headers.authorization;
 
-  if (!token) {
+  if (!authorization) {
     throw createHttpError(401, "Authentication required");
   }
 
+  const [scheme, token, ...rest] = authorization.trim().split(/\s+/);
+  if (scheme !== "Bearer" || !token || rest.length > 0) {
+    throw createHttpError(401, "Invalid authorization header");
+  }
+
   try {
-    req.user = jwt.verify(token, env.JWT_ACCESS_SECRET) as jwt.JwtPayload;
+    const payload = verifyAccessToken(token);
+    if (typeof payload.sub !== "string") {
+      throw createHttpError(401, "Invalid token payload");
+    }
+
+    req.user = { id: payload.sub };
     next();
-  } catch {
+  } catch (error) {
+    if (createHttpError.isHttpError(error)) throw error;
     throw createHttpError(401, "Invalid or expired token");
   }
 };
