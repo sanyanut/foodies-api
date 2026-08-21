@@ -13,6 +13,7 @@ import { generateOpenApiDocument } from "./common/swagger.ts";
 import { apiLimiter } from "./middleware/rate-limiter.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
 import { notFound } from "./middleware/not-found.ts";
+import authRoutes from "./modules/auth/auth.routes.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
 
 // Build and configure the Express application (BackEnd task 1: "spin up the dev
@@ -58,6 +59,7 @@ export function createApp() {
   });
 
   app.use("/health", healthRoutes);
+  app.use("/auth", authRoutes);
 
   // ── API documentation (Swagger UI) ──
   // Never expose the API docs in production — mount them only outside prod.

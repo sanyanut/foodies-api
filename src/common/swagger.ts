@@ -29,6 +29,45 @@ const HealthSchema = registry.register(
   }),
 );
 
+const RegisterRequestSchema = registry.register(
+  "RegisterRequest",
+  z.object({
+    name: z.string().min(2).max(64),
+    email: z.string().email(),
+    password: z.string().min(8).max(128),
+  }),
+);
+const LoginRequestSchema = registry.register(
+  "LoginRequest",
+  z.object({
+    email: z.string().email(),
+    password: z.string().min(1),
+  }),
+);
+const AuthUserSchema = registry.register(
+  "AuthUser",
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
+    avatar: z.string().nullable(),
+  }),
+);
+const AuthResponseSchema = registry.register(
+  "AuthResponse",
+  z.object({
+    user: AuthUserSchema,
+    accessToken: z.string(),
+    refreshToken: z.string(),
+  }),
+);
+const ErrorSchema = registry.register(
+  "Error",
+  z.object({
+    error: z.string(),
+  }),
+);
+
 registry.registerPath({
   method: "get",
   path: "/health",
@@ -53,6 +92,83 @@ registry.registerPath({
   },
 });
 
+registry.registerPath({
+  method: "post",
+  path: "/auth/register",
+  tags: ["Auth"],
+  summary: "Register a new user",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: RegisterRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "User registered",
+      content: { "application/json": { schema: AuthResponseSchema } },
+    },
+    400: {
+      description: "Validation failed",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    409: {
+      description: "Email already in use",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/login",
+  tags: ["Auth"],
+  summary: "Log in a user",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: LoginRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "User logged in",
+      content: { "application/json": { schema: AuthResponseSchema } },
+    },
+    400: {
+      description: "Validation failed",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    401: {
+      description: "Invalid email or password",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/logout",
+  tags: ["Auth"],
+  summary: "Log out the authenticated user",
+  security: [{ bearerAuth: [] }],
+  responses: {
+    204: {
+      description: "User logged out",
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
 export function generateOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);
 
@@ -62,7 +178,7 @@ export function generateOpenApiDocument() {
       title: "Foodies API",
       version: "1.0.0",
       description:
-        "REST API for the Foodies app. Currently: dev server + database wired up (BackEnd tasks 1 & 2). Endpoint groups are added incrementally.",
+        "REST API for the Foodies app. Foundation endpoints and /auth are wired up; other endpoint groups are added incrementally.",
     },
     servers: [{ url: `http://localhost:${env.PORT}` }],
   });
