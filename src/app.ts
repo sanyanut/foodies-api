@@ -51,7 +51,16 @@ export function createApp() {
       credentials: true,
     }),
   );
-  app.use(pinoHttp({ logger }));
+  app.use(
+    pinoHttp({
+      logger,
+      redact: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "res.headers.set-cookie",
+      ],
+    }),
+  );
   app.use(apiLimiter);
 
   app.use(express.json());

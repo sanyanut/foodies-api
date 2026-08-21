@@ -50,6 +50,20 @@ const { prismaMock, users, refreshTokens } = vi.hoisted(() => {
       }),
     },
     refreshToken: {
+      findUnique: vi.fn(async ({ where, select }: any) => {
+        const refreshToken = refreshTokens.find(
+          (candidate) => candidate.token === where.token,
+        );
+
+        if (!refreshToken) return null;
+        if (!select) return { ...refreshToken };
+
+        return Object.fromEntries(
+          Object.entries(select)
+            .filter(([, enabled]) => enabled)
+            .map(([key]) => [key, refreshToken[key]]),
+        );
+      }),
       create: vi.fn(async ({ data }: any) => {
         const refreshToken = {
           id: `refresh-${refreshTokens.length + 1}`,
@@ -101,6 +115,31 @@ vi.mock("../src/prisma/prisma.ts", () => ({
 
 import app from "../src/app.ts";
 
+const setCookieHeaders = (res: any): string[] => {
+  const header = res.headers["set-cookie"];
+  if (!header) return [];
+  return Array.isArray(header) ? header : [header];
+};
+
+const refreshCookieFrom = (res: any) => {
+  const cookie = setCookieHeaders(res).find((value) =>
+    value.startsWith("refreshToken="),
+  );
+  expect(cookie).toBeDefined();
+
+  return cookie!;
+};
+
+const expectRefreshCookie = (res: any) => {
+  const cookie = refreshCookieFrom(res);
+  expect(cookie).toContain("HttpOnly");
+  expect(cookie).toContain("SameSite=Lax");
+
+  return cookie;
+};
+
+const cookiePair = (cookie: string) => cookie.split(";")[0];
+
 beforeEach(async () => {
   users.splice(0, users.length);
   refreshTokens.splice(0, refreshTokens.length);
@@ -132,9 +171,13 @@ describe("POST /auth/register", () => {
     });
     expect(res.body.user.password).toBeUndefined();
     expect(res.body.accessToken).toEqual(expect.any(String));
-    expect(res.body.refreshToken).toEqual(expect.any(String));
+    expect(res.body.refreshToken).toBeUndefined();
+
+    const refreshCookie = expectRefreshCookie(res);
     expect(refreshTokens).toHaveLength(1);
-    expect(refreshTokens[0].token).toBe(res.body.refreshToken);
+    expect(cookiePair(refreshCookie)).toBe(
+      `refreshToken=${refreshTokens[0].token}`,
+    );
   });
 
   it("returns 409 when email is already in use", async () => {
@@ -176,7 +219,10 @@ describe("POST /auth/login", () => {
     });
     expect(res.body.user.password).toBeUndefined();
     expect(res.body.accessToken).toEqual(expect.any(String));
-    expect(res.body.refreshToken).toEqual(expect.any(String));
+    expect(res.body.refreshToken).toBeUndefined();
+    expect(cookiePair(expectRefreshCookie(res))).toBe(
+      `refreshToken=${refreshTokens[0].token}`,
+    );
     expect(refreshTokens).toHaveLength(1);
   });
 
@@ -188,6 +234,44 @@ describe("POST /auth/login", () => {
 
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Invalid email or password");
+  });
+});
+
+describe("POST /auth/refresh", () => {
+  it("requires a refresh token cookie", async () => {
+    const res = await request(app).post("/auth/refresh");
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Refresh token required");
+  });
+
+  it("rotates the refresh token and returns a new access token", async () => {
+    const loginRes = await request(app).post("/auth/login").send({
+      email: "user@gmail.com",
+      password: "password123",
+    });
+    const oldRefreshToken = refreshTokens[0].token;
+    const refreshCookie = cookiePair(refreshCookieFrom(loginRes));
+
+    const res = await request(app)
+      .post("/auth/refresh")
+      .set("Cookie", refreshCookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.accessToken).toEqual(expect.any(String));
+    expect(res.body.refreshToken).toBeUndefined();
+    expect(refreshTokens).toHaveLength(1);
+    expect(refreshTokens[0].token).not.toBe(oldRefreshToken);
+    expect(cookiePair(expectRefreshCookie(res))).toBe(
+      `refreshToken=${refreshTokens[0].token}`,
+    );
+
+    const reuseRes = await request(app)
+      .post("/auth/refresh")
+      .set("Cookie", refreshCookie);
+
+    expect(reuseRes.status).toBe(401);
+    expect(reuseRes.body.error).toBe("Invalid or expired refresh token");
   });
 });
 
@@ -207,8 +291,10 @@ describe("POST /auth/logout", () => {
 
     const res = await request(app)
       .post("/auth/logout")
-      .set("Authorization", `Bearer ${loginRes.body.accessToken}`);
+      .set("Authorization", `Bearer ${loginRes.body.accessToken}`)
+      .set("Cookie", cookiePair(refreshCookieFrom(loginRes)));
 
+    expect(cookiePair(refreshCookieFrom(res))).toBe("refreshToken=");
     expect(res.status).toBe(204);
     expect(refreshTokens).toHaveLength(0);
   });

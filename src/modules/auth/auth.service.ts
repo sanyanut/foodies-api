@@ -6,9 +6,11 @@ import {
   refreshTokenExpiryDate,
   signAccessToken,
   signRefreshToken,
+  verifyRefreshToken,
 } from "../../utils/tokens.ts";
 import {
   deleteExpiredRefreshTokens,
+  revokeRefreshToken,
   revokeAllForUser,
 } from "../../utils/refresh-tokens.ts";
 import type { LoginInput, RegisterInput } from "./auth.schemas.ts";
@@ -109,6 +111,46 @@ export const login = async (input: LoginInput) => {
   }
 
   return createSession(toPublicUser(user));
+};
+
+export const refresh = async (refreshToken: string) => {
+  await deleteExpiredRefreshTokens();
+
+  let userId: string;
+  try {
+    const payload = verifyRefreshToken(refreshToken);
+    if (typeof payload.sub !== "string") {
+      throw createHttpError(401, "Invalid refresh token payload");
+    }
+    userId = payload.sub;
+  } catch (error) {
+    if (createHttpError.isHttpError(error)) throw error;
+    throw createHttpError(401, "Invalid or expired refresh token");
+  }
+
+  const storedToken = await prisma.refreshToken.findUnique({
+    where: { token: refreshToken },
+    select: { userId: true },
+  });
+
+  if (!storedToken || storedToken.userId !== userId) {
+    throw createHttpError(401, "Invalid or expired refresh token");
+  }
+
+  await revokeRefreshToken(refreshToken);
+
+  const accessToken = signAccessToken(userId);
+  const newRefreshToken = signRefreshToken(userId);
+
+  await prisma.refreshToken.create({
+    data: {
+      token: newRefreshToken,
+      userId,
+      expiresAt: refreshTokenExpiryDate(newRefreshToken),
+    },
+  });
+
+  return { accessToken, refreshToken: newRefreshToken };
 };
 
 export const logout = async (userId: string) => {

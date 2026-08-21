@@ -6,14 +6,11 @@ import {
 import { z } from "zod";
 
 import { env } from "../config/env.ts";
-import { maximum } from "zod/mini";
-import { response } from "express";
 
 extendZodWithOpenApi(z);
 
-// Central OpenAPI registry. Each module registers its own schemas/paths here;
-// for now only the health check is documented. `bearerAuth` is pre-declared so
-// the future private endpoints can reference it.
+// Central OpenAPI registry. Schemas and paths are registered here so Swagger UI
+// can expose the API contract from one generated document.
 export const registry = new OpenAPIRegistry();
 
 registry.registerComponent("securitySchemes", "bearerAuth", {
@@ -21,6 +18,15 @@ registry.registerComponent("securitySchemes", "bearerAuth", {
     scheme: "bearer",
     bearerFormat: "JWT",
 });
+
+registry.registerComponent("securitySchemes", "refreshTokenCookie", {
+    type: "apiKey",
+    in: "cookie",
+    name: "refreshToken",
+});
+
+const bearerSecurity = [{ bearerAuth: [] }];
+const refreshCookieSecurity = [{ refreshTokenCookie: [] }];
 
 const HealthSchema = registry.register(
     "Health",
@@ -30,6 +36,60 @@ const HealthSchema = registry.register(
         timestamp: z.string(),
     }),
 );
+
+const RegisterRequestSchema = registry.register(
+    "RegisterRequest",
+    z.object({
+        name: z.string().min(2).max(64),
+        email: z.string().email(),
+        password: z.string().min(8).max(128),
+    }),
+);
+
+const LoginRequestSchema = registry.register(
+    "LoginRequest",
+    z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+    }),
+);
+
+const AuthUserSchema = registry.register(
+    "AuthUser",
+    z.object({
+        id: z.string(),
+        name: z.string(),
+        email: z.string().email(),
+        avatar: z.string().nullable(),
+    }),
+);
+
+const AuthResponseSchema = registry.register(
+    "AuthResponse",
+    z.object({
+        user: AuthUserSchema,
+        accessToken: z.string(),
+    }),
+);
+
+const RefreshResponseSchema = registry.register(
+    "RefreshResponse",
+    z.object({
+        accessToken: z.string(),
+    }),
+);
+
+const ErrorSchema = registry.register(
+    "Error",
+    z.object({
+        error: z.string(),
+    }),
+);
+
+const unauthorizedResponse = {
+    description: "Unauthorized - token missing or invalid",
+    content: { "application/json": { schema: ErrorSchema } },
+};
 
 registry.registerPath({
     method: "get",
@@ -52,6 +112,96 @@ registry.registerPath({
     responses: {
         200: { description: "Database reachable" },
         503: { description: "Database unreachable" },
+    },
+});
+
+registry.registerPath({
+    method: "post",
+    path: "/auth/register",
+    tags: ["Auth"],
+    summary: "Register a new user",
+    request: {
+        body: {
+            content: {
+                "application/json": {
+                    schema: RegisterRequestSchema,
+                },
+            },
+        },
+    },
+    responses: {
+        201: {
+            description: "User registered",
+            content: { "application/json": { schema: AuthResponseSchema } },
+        },
+        400: {
+            description: "Validation failed",
+            content: { "application/json": { schema: ErrorSchema } },
+        },
+        409: {
+            description: "Email already in use",
+            content: { "application/json": { schema: ErrorSchema } },
+        },
+    },
+});
+
+registry.registerPath({
+    method: "post",
+    path: "/auth/login",
+    tags: ["Auth"],
+    summary: "Log in a user",
+    request: {
+        body: {
+            content: {
+                "application/json": {
+                    schema: LoginRequestSchema,
+                },
+            },
+        },
+    },
+    responses: {
+        200: {
+            description: "User logged in",
+            content: { "application/json": { schema: AuthResponseSchema } },
+        },
+        400: {
+            description: "Validation failed",
+            content: { "application/json": { schema: ErrorSchema } },
+        },
+        401: {
+            description: "Invalid email or password",
+            content: { "application/json": { schema: ErrorSchema } },
+        },
+    },
+});
+
+registry.registerPath({
+    method: "post",
+    path: "/auth/refresh",
+    tags: ["Auth"],
+    summary: "Refresh the access token",
+    description: "Reads the refreshToken HttpOnly cookie and rotates it.",
+    security: refreshCookieSecurity,
+    responses: {
+        200: {
+            description: "Access token refreshed",
+            content: { "application/json": { schema: RefreshResponseSchema } },
+        },
+        401: unauthorizedResponse,
+    },
+});
+
+registry.registerPath({
+    method: "post",
+    path: "/auth/logout",
+    tags: ["Auth"],
+    summary: "Log out the authenticated user",
+    security: bearerSecurity,
+    responses: {
+        204: {
+            description: "User logged out",
+        },
+        401: unauthorizedResponse,
     },
 });
 
@@ -187,11 +337,6 @@ const limitParam = {
     schema: { type: "integer" as const, default: 5 },
 };
 
-const bearerSecurity = [{ bearerAuth: [] }];
-
-const unauthorizedResponse = {
-    description: "Unauthorized — token missing or invalid",
-};
 const notFoundResponse = { description: "User not found" };
 
 registry.registerPath({

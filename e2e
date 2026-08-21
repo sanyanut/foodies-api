@@ -1,0 +1,55 @@
+# Auth E2E Test Cases
+
+Run date: 2026-08-21
+Target: `http://localhost:3000`
+Services: `postgres` + `app` via `docker compose up -d --build`
+
+Scope: local HTTP e2e coverage for auth endpoints and the fixed refresh-token flow.
+
+## Results
+
+| ID | Case | Expected result | Result |
+| --- | --- | --- | --- |
+| AUTH-E2E-001 | `GET /health` | `200`, API liveness body | PASS |
+| AUTH-E2E-002 | `GET /health/db` | `200`, database reachable | PASS |
+| AUTH-E2E-003 | `POST /auth/register` with valid payload | `201`; response body includes `user` and `accessToken`; response body does not include `refreshToken`; `Set-Cookie` contains `refreshToken`, `HttpOnly`, `Path=/auth`, `SameSite=Lax` | PASS |
+| AUTH-E2E-004 | `POST /auth/register` with duplicate email | `409`, `Email already in use` | PASS |
+| AUTH-E2E-005 | `POST /auth/register` with invalid body | `400`, `Validation failed` | PASS |
+| AUTH-E2E-006 | `POST /auth/login` with valid credentials | `200`; response body includes `user` and `accessToken`; response body does not include `refreshToken`; `Set-Cookie` contains `refreshToken`, `HttpOnly`, `Path=/auth`, `SameSite=Lax` | PASS |
+| AUTH-E2E-007 | `POST /auth/login` with invalid password | `401`, `Invalid email or password` | PASS |
+| AUTH-E2E-008 | `GET /users/me` with issued access token | `200`, authenticated user profile | PASS |
+| AUTH-E2E-009 | `POST /auth/refresh` without cookie | `401`, `Refresh token required` | PASS |
+| AUTH-E2E-010 | `POST /auth/refresh` with valid `refreshToken` cookie | `200`; response body includes new `accessToken`; response body does not include `refreshToken`; new `refreshToken` cookie is issued | PASS |
+| AUTH-E2E-011 | Reuse old refresh cookie after rotation | `401`, `Invalid or expired refresh token` | PASS |
+| AUTH-E2E-012 | `GET /users/me` with access token returned by refresh | `200`, authenticated user profile | PASS |
+| AUTH-E2E-013 | `POST /auth/logout` without access token | `401`, `Authentication required` | PASS |
+| AUTH-E2E-014 | `POST /auth/logout` with access token and refresh cookie | `204`; refresh cookie is cleared; stored refresh tokens for the user are revoked | PASS |
+| AUTH-E2E-015 | `POST /auth/refresh` after logout with old refresh cookie | `401`, `Invalid or expired refresh token` | PASS |
+| AUTH-E2E-016 | `GET /users/me` with an expired access token | `401`, `Invalid or expired token` | PASS |
+| AUTH-E2E-017 | `POST /auth/refresh` after expired access token, using refresh cookie | `200`; response body includes new `accessToken`; response body does not include `refreshToken` | PASS |
+| AUTH-E2E-018 | `GET /users/me` with access token returned after expired-token refresh | `200`, authenticated user profile | PASS |
+| AUTH-E2E-019 | Auth response logging after `POST /auth/register` | App logs redact `Set-Cookie` as `[Redacted]` | PASS |
+| AUTH-E2E-020 | Auth request/response logging after `POST /auth/refresh` | App logs redact request `Cookie` and response `Set-Cookie` as `[Redacted]` | PASS |
+
+## Verified Fixes
+
+- `POST /auth/refresh` exists and is reachable locally.
+- Refresh token is not returned in JSON response bodies for register, login, or refresh.
+- Refresh token is delivered as an `HttpOnly` cookie named `refreshToken`.
+- Refresh token rotation works: the old refresh cookie becomes invalid after refresh.
+- Expired access-token recovery works at the API level: after a protected endpoint returns `401`, `POST /auth/refresh` with the cookie returns a new access token, and the protected endpoint succeeds with it.
+- Auth tokens and cookies are redacted from HTTP request/response logs.
+
+## Notes
+
+- The backend does not automatically retry a protected request after an access token expires. The client should call `POST /auth/refresh` when it receives `401` for an expired access token, then retry the original request with the new access token.
+- In local development and tests the refresh cookie uses `SameSite=Lax` and `secure=false`. In production it uses `SameSite=None` and `secure=true`.
+
+## Commands Used
+
+```powershell
+docker compose up -d --build
+npm.cmd run typecheck
+npm.cmd test
+docker compose logs --tail=90 app
+```
