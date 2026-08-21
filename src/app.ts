@@ -13,6 +13,7 @@ import { generateOpenApiDocument } from "./common/swagger.ts";
 import { apiLimiter } from "./middleware/rate-limiter.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
 import { notFound } from "./middleware/not-found.ts";
+import authRoutes from "./modules/auth/auth.routes.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
 import areasRouter from "./modules/areas/areas.routes.ts";
 import ingredientsRouter from "./modules/ingredients/ingredients.routes.ts";
@@ -50,7 +51,16 @@ export function createApp() {
       credentials: true,
     }),
   );
-  app.use(pinoHttp({ logger }));
+  app.use(
+    pinoHttp({
+      logger,
+      redact: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "res.headers.set-cookie",
+      ],
+    }),
+  );
   app.use(apiLimiter);
 
   app.use(express.json());
@@ -68,6 +78,7 @@ export function createApp() {
   });
 
   app.use("/health", healthRoutes);
+  app.use("/auth", authRoutes);
   app.use("/areas", areasRouter);
   app.use("/ingredients", ingredientsRouter);
   app.use("/categories", categoriesRouter);
