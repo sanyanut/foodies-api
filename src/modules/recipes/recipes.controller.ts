@@ -5,6 +5,7 @@ import type {
   SearchRecipesQuery,
   CreateRecipeBody,
   GetOwnRecipesQuery,
+  GetFavoritesQuery,
   GetPopularRecipesQuery,
 } from "./recipes.schemas.ts";
 
@@ -95,6 +96,23 @@ export async function getOwnRecipesController(
     const query = res.locals.query as GetOwnRecipesQuery;
 
     const result = await recipesService.getOwnRecipes(userId, query);
+    res.status(200).json(result);
+  } catch (error: unknown) {
+    next(error);
+  }
+}
+
+// GET /recipes/favorites
+export async function getFavoritesController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const userId = req.user?.id as string;
+    const query = res.locals.query as GetFavoritesQuery;
+
+    const result = await recipesService.getFavorites(userId, query);
     res.status(200).json(result);
   } catch (error: unknown) {
     next(error);

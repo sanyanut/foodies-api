@@ -30,6 +30,13 @@ router.get(
   recipesController.getOwnRecipesController,
 );
 
+router.get(
+  "/favorites",
+  authenticate,
+  validateQuery(recipesSchema.GetFavoritesQuerySchema),
+  recipesController.getFavoritesController,
+);
+
 router.post(
   "/",
   authenticate,

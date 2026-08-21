@@ -5,6 +5,7 @@ import { uploadImageBuffer } from "../../common/cloudinary.ts";
 import type {
   SearchRecipesQuery,
   GetOwnRecipesQuery,
+  GetFavoritesQuery,
   GetPopularRecipesQuery,
   CreateRecipeBody,
 } from "./recipes.schemas.ts";
@@ -161,6 +162,37 @@ export async function getOwnRecipes(
         area: {
           select: { id: true, name: true },
         },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.recipe.count({ where }),
+  ]);
+
+  return {
+    data: recipes,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+export async function getFavorites(userId: string, query: GetFavoritesQuery) {
+  const { page, limit } = query;
+  const skip = (page - 1) * limit;
+  const where: Prisma.RecipeWhereInput = {
+    favoritedBy: { some: { userId } },
+  };
+
+  const [recipes, total] = await prisma.$transaction([
+    prisma.recipe.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        category: { select: { id: true, name: true } },
+        area: { select: { id: true, name: true } },
+        owner: { select: { name: true, avatar: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
