@@ -18,6 +18,10 @@ vi.mock("../../src/prisma/prisma.ts", () => {
         create: vi.fn(),
         delete: vi.fn(),
       },
+      recipe: {
+        findMany: vi.fn(),
+        count: vi.fn(),
+      },
       $transaction: vi.fn(),
     },
   };
@@ -66,7 +70,9 @@ describe("Users Service", () => {
     it("should throw 404 if user not found", async () => {
       // @ts-ignore
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(usersService.getMyProfile("u1")).rejects.toThrow("User not found");
+      await expect(usersService.getMyProfile("u1")).rejects.toThrow(
+        "User not found",
+      );
     });
   });
 
@@ -82,7 +88,10 @@ describe("Users Service", () => {
       // @ts-ignore
       prisma.user.findUnique.mockResolvedValue(mockUser);
       // @ts-ignore
-      prisma.follow.findUnique.mockResolvedValue({ followerId: "u1", followingId: "u2" });
+      prisma.follow.findUnique.mockResolvedValue({
+        followerId: "u1",
+        followingId: "u2",
+      });
 
       const result = await usersService.getUserProfile("u1", "u2");
 
@@ -94,7 +103,9 @@ describe("Users Service", () => {
     it("should throw 404 if target user not found", async () => {
       // @ts-ignore
       prisma.user.findUnique.mockResolvedValue(null);
-      await expect(usersService.getUserProfile("u1", "u2")).rejects.toThrow("User not found");
+      await expect(usersService.getUserProfile("u1", "u2")).rejects.toThrow(
+        "User not found",
+      );
     });
   });
 
@@ -102,11 +113,16 @@ describe("Users Service", () => {
     it("should upload image and update user", async () => {
       const mockFile = { buffer: Buffer.from("test") } as Express.Multer.File;
       // @ts-ignore
-      vi.mocked(cloudinary.uploadImageBuffer).mockResolvedValue("http://image.url");
+      vi.mocked(cloudinary.uploadImageBuffer).mockResolvedValue(
+        "http://image.url",
+      );
 
       const result = await usersService.updateAvatar("u1", mockFile);
 
-      expect(cloudinary.uploadImageBuffer).toHaveBeenCalledWith(mockFile.buffer, "foodies/avatars");
+      expect(cloudinary.uploadImageBuffer).toHaveBeenCalledWith(
+        mockFile.buffer,
+        "foodies/avatars",
+      );
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: "u1" },
         data: { avatar: "http://image.url" },
@@ -124,7 +140,9 @@ describe("Users Service", () => {
       const result = await usersService.getFollowing("u1", 1, 5);
 
       expect(prisma.$transaction).toHaveBeenCalled();
-      expect(result.users).toEqual([{ id: "u2", name: "User2", isFollowedByMe: true }]);
+      expect(result.users).toEqual([
+        { id: "u2", name: "User2", isFollowedByMe: true },
+      ]);
       expect(result.total).toBe(1);
     });
   });
@@ -141,7 +159,53 @@ describe("Users Service", () => {
 
       const result = await usersService.getFollowers("u1", "targetId", 1, 5);
 
-      expect(result.users).toEqual([{ id: "u3", name: "User3", isFollowedByMe: true }]);
+      expect(result.users).toEqual([
+        { id: "u3", name: "User3", isFollowedByMe: true },
+      ]);
+    });
+  });
+
+  describe("getUserRecipes", () => {
+    it("should return paginated recipes for user", async () => {
+      // @ts-ignore
+      prisma.user.findUnique.mockResolvedValue({ id: "u1" });
+
+      const mockRecipes = [
+        {
+          id: "r1",
+          title: "Recipe 1",
+          ownerId: "u1",
+        },
+      ];
+
+      // @ts-ignore
+      prisma.$transaction.mockResolvedValue([mockRecipes, 1]);
+
+      const result = await usersService.getUserRecipes("u1", 1, 5);
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: "u1" },
+        select: { id: true },
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalled();
+
+      expect(result).toEqual({
+        data: mockRecipes,
+        total: 1,
+        page: 1,
+        limit: 5,
+        totalPages: 1,
+      });
+    });
+
+    it("should throw 404 if user not found", async () => {
+      // @ts-ignore
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(usersService.getUserRecipes("u1", 1, 5)).rejects.toThrow(
+        "User not found",
+      );
     });
   });
 
@@ -160,16 +224,23 @@ describe("Users Service", () => {
     });
 
     it("should throw 400 if trying to follow self", async () => {
-      await expect(usersService.followUser("u1", "u1")).rejects.toThrow("You cannot follow yourself");
+      await expect(usersService.followUser("u1", "u1")).rejects.toThrow(
+        "You cannot follow yourself",
+      );
     });
 
     it("should throw 409 if already following", async () => {
       // @ts-ignore
-      prisma.user.findUnique.mockResolvedValue({ id: "u2" }); 
+      prisma.user.findUnique.mockResolvedValue({ id: "u2" });
       // @ts-ignore
-      prisma.follow.findUnique.mockResolvedValue({ followerId: "u1", followingId: "u2" });
+      prisma.follow.findUnique.mockResolvedValue({
+        followerId: "u1",
+        followingId: "u2",
+      });
 
-      await expect(usersService.followUser("u1", "u2")).rejects.toThrow("Already following this user");
+      await expect(usersService.followUser("u1", "u2")).rejects.toThrow(
+        "Already following this user",
+      );
     });
   });
 
@@ -177,20 +248,26 @@ describe("Users Service", () => {
     it("should delete follow record", async () => {
       await usersService.unfollowUser("u1", "u2");
       expect(prisma.follow.delete).toHaveBeenCalledWith({
-        where: { followerId_followingId: { followerId: "u1", followingId: "u2" } }
+        where: {
+          followerId_followingId: { followerId: "u1", followingId: "u2" },
+        },
       });
     });
 
     it("should ignore P2025 error (record not found)", async () => {
       // @ts-ignore
       prisma.follow.delete.mockRejectedValue({ code: "P2025" });
-      await expect(usersService.unfollowUser("u1", "u2")).resolves.not.toThrow();
+      await expect(
+        usersService.unfollowUser("u1", "u2"),
+      ).resolves.not.toThrow();
     });
 
     it("should throw non-P2025 errors", async () => {
       // @ts-ignore
       prisma.follow.delete.mockRejectedValue(new Error("DB Connection Error"));
-      await expect(usersService.unfollowUser("u1", "u2")).rejects.toThrow("DB Connection Error");
+      await expect(usersService.unfollowUser("u1", "u2")).rejects.toThrow(
+        "DB Connection Error",
+      );
     });
   });
 });
