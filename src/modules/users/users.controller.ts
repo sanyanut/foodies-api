@@ -122,3 +122,24 @@ export async function unfollowUser(
     next(e);
   }
 }
+
+// GET /users/:id/recipes
+export async function getUserRecipes(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { page, limit } = res.locals.query as PaginationQuery;
+
+    const result = await usersService.getUserRecipes(
+      req.params.id as string,
+      page,
+      limit,
+    );
+
+    res.status(200).json(result);
+  } catch (e: unknown) {
+    next(e);
+  }
+}

@@ -215,3 +215,49 @@ export async function unfollowUser(currentUserId: string, targetId: string) {
     if (!isPrismaNotFound) throw err;
   }
 }
+
+// GET /users/:id/recipes
+export async function getUserRecipes(
+  userId: string,
+  page: number,
+  limit: number,
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+
+  if (!user) {
+    throw createHttpError(404, "User not found");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [recipes, total] = await prisma.$transaction([
+    prisma.recipe.findMany({
+      where: { ownerId: userId },
+      skip,
+      take: limit,
+      include: {
+        category: {
+          select: { id: true, name: true },
+        },
+        area: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.recipe.count({
+      where: { ownerId: userId },
+    }),
+  ]);
+
+  return {
+    data: recipes,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}

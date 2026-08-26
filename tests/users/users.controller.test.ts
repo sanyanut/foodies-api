@@ -9,6 +9,7 @@ vi.mock("../../src/modules/users/users.service.ts", () => ({
   updateAvatar: vi.fn(),
   getUserProfile: vi.fn(),
   getFollowers: vi.fn(),
+  getUserRecipes: vi.fn(),
   followUser: vi.fn(),
   unfollowUser: vi.fn(),
 }));
@@ -61,13 +62,23 @@ describe("Users Controller", () => {
   describe("getFollowing", () => {
     it("should return paginated following users", async () => {
       res.locals = { query: { page: 1, limit: 5 } };
-      const mockResult = { users: [], total: 0, page: 1, limit: 5, totalPages: 0 };
+      const mockResult = {
+        users: [],
+        total: 0,
+        page: 1,
+        limit: 5,
+        totalPages: 0,
+      };
       // @ts-ignore
       vi.mocked(usersService.getFollowing).mockResolvedValue(mockResult);
 
       await usersController.getFollowing(req as Request, res as Response, next);
 
-      expect(usersService.getFollowing).toHaveBeenCalledWith("current-user", 1, 5);
+      expect(usersService.getFollowing).toHaveBeenCalledWith(
+        "current-user",
+        1,
+        5,
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockResult);
     });
@@ -77,11 +88,16 @@ describe("Users Controller", () => {
     it("should return updated avatar url", async () => {
       req.file = { buffer: Buffer.from("test") } as Express.Multer.File;
       // @ts-ignore
-      vi.mocked(usersService.updateAvatar).mockResolvedValue({ avatarUrl: "http://image.url" });
+      vi.mocked(usersService.updateAvatar).mockResolvedValue({
+        avatarUrl: "http://image.url",
+      });
 
       await usersController.updateAvatar(req as Request, res as Response, next);
 
-      expect(usersService.updateAvatar).toHaveBeenCalledWith("current-user", req.file);
+      expect(usersService.updateAvatar).toHaveBeenCalledWith(
+        "current-user",
+        req.file,
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ avatarUrl: "http://image.url" });
     });
@@ -90,7 +106,9 @@ describe("Users Controller", () => {
       req.file = undefined;
       await usersController.updateAvatar(req as Request, res as Response, next);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: "Avatar file is required" });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Avatar file is required",
+      });
       expect(usersService.updateAvatar).not.toHaveBeenCalled();
     });
   });
@@ -102,9 +120,16 @@ describe("Users Controller", () => {
       // @ts-ignore
       vi.mocked(usersService.getUserProfile).mockResolvedValue(mockProfile);
 
-      await usersController.getUserProfile(req as Request, res as Response, next);
+      await usersController.getUserProfile(
+        req as Request,
+        res as Response,
+        next,
+      );
 
-      expect(usersService.getUserProfile).toHaveBeenCalledWith("current-user", "target-user");
+      expect(usersService.getUserProfile).toHaveBeenCalledWith(
+        "current-user",
+        "target-user",
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockProfile);
     });
@@ -114,13 +139,57 @@ describe("Users Controller", () => {
     it("should return followers", async () => {
       req.params = { id: "target-user" };
       res.locals = { query: { page: 2, limit: 10 } };
-      const mockResult = { users: [], total: 0, page: 2, limit: 10, totalPages: 0 };
+      const mockResult = {
+        users: [],
+        total: 0,
+        page: 2,
+        limit: 10,
+        totalPages: 0,
+      };
       // @ts-ignore
       vi.mocked(usersService.getFollowers).mockResolvedValue(mockResult);
 
       await usersController.getFollowers(req as Request, res as Response, next);
 
-      expect(usersService.getFollowers).toHaveBeenCalledWith("current-user", "target-user", 2, 10);
+      expect(usersService.getFollowers).toHaveBeenCalledWith(
+        "current-user",
+        "target-user",
+        2,
+        10,
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockResult);
+    });
+  });
+
+  describe("getUserRecipes", () => {
+    it("should return paginated user recipes", async () => {
+      req.params = { id: "target-user" };
+      res.locals = { query: { page: 1, limit: 5 } };
+
+      const mockResult = {
+        data: [{ id: "r1", title: "Recipe 1", ownerId: "target-user" }],
+        total: 1,
+        page: 1,
+        limit: 5,
+        totalPages: 1,
+      };
+
+      // @ts-ignore
+      vi.mocked(usersService.getUserRecipes).mockResolvedValue(mockResult);
+
+      await usersController.getUserRecipes(
+        req as Request,
+        res as Response,
+        next,
+      );
+
+      expect(usersService.getUserRecipes).toHaveBeenCalledWith(
+        "target-user",
+        1,
+        5,
+      );
+
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockResult);
     });
@@ -134,9 +203,14 @@ describe("Users Controller", () => {
 
       await usersController.followUser(req as Request, res as Response, next);
 
-      expect(usersService.followUser).toHaveBeenCalledWith("current-user", "target-user");
+      expect(usersService.followUser).toHaveBeenCalledWith(
+        "current-user",
+        "target-user",
+      );
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith({ message: "Successfully followed" });
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Successfully followed",
+      });
     });
   });
 
@@ -148,7 +222,10 @@ describe("Users Controller", () => {
 
       await usersController.unfollowUser(req as Request, res as Response, next);
 
-      expect(usersService.unfollowUser).toHaveBeenCalledWith("current-user", "target-user");
+      expect(usersService.unfollowUser).toHaveBeenCalledWith(
+        "current-user",
+        "target-user",
+      );
       expect(res.status).toHaveBeenCalledWith(204);
       expect(res.send).toHaveBeenCalled();
     });

@@ -313,6 +313,34 @@ const AvatarResponseSchema = registry.register(
     }),
 );
 
+// ── Recipes schemas ───────────────────────────────────────────────────────────────
+
+const RecipeSchema = registry.register(
+    "Recipe",
+    z.object({
+        id: z.string(),
+        title: z.string(),
+        description: z.string().nullable(),
+        instructions: z.string().optional(),
+        thumb: z.string().nullable(),
+        time: z.number().nullable(),
+        categoryId: z.string(),
+        areaId: z.string().nullable(),
+        createdAt: z.string().optional(),
+    }),
+);
+
+const PaginatedRecipesSchema = registry.register(
+    "PaginatedRecipes",
+    z.object({
+        data: z.array(RecipeSchema),
+        total: z.number().int(),
+        page: z.number().int(),
+        limit: z.number().int(),
+        totalPages: z.number().int(),
+    }),
+);
+
 // ── Users paths ───────────────────────────────────────────────────────────────
 
 const userIdParam = {
@@ -466,6 +494,25 @@ registry.registerPath({
         401: unauthorizedResponse,
     },
 });
+
+registry.registerPath({
+    method: "get",
+    path: "/users/{id}/recipes",
+    tags: ["Users"],
+    summary: "Get recipes created by a user",
+    description:
+        "Return a paginated list of recipes created by the specified user",
+    security: bearerSecurity,
+    parameters: [userIdParam, pageParam, limitParam],
+    responses: {
+        200: {
+            description: "Paginated list of user's recipes",
+            content: { "application/json": { schema: PaginatedRecipesSchema } },
+        },
+        401: unauthorizedResponse,
+        404: notFoundResponse,
+    },
+});
 // ── Ingredients schemas ───────────────────────────────────────────────────────
 
 const IngredientSchema = registry.register(
@@ -519,33 +566,7 @@ registry.registerPath({
     },
 });
 
-// ── Recipes schemas ───────────────────────────────────────────────────────────────
-
-const RecipeSchema = registry.register(
-    "Recipe",
-    z.object({
-        id: z.string(),
-        title: z.string(),
-        description: z.string().nullable(),
-        instructions: z.string().optional(),
-        thumb: z.string().nullable(),
-        time: z.number().nullable(),
-        categoryId: z.string(),
-        areaId: z.string().nullable(),
-        createdAt: z.string().optional(),
-    }),
-);
-
-const PaginatedRecipesSchema = registry.register(
-    "PaginatedRecipes",
-    z.object({
-        data: z.array(RecipeSchema),
-        total: z.number().int(),
-        page: z.number().int(),
-        limit: z.number().int(),
-        totalPages: z.number().int(),
-    }),
-);
+// ── Recipes create body ───────────────────────────────────────────────────────────
 
 export const CreateRecipeBodySchema = registry.register(
     "CreateRecipeBody",

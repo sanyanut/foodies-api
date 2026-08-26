@@ -24,6 +24,13 @@ router.patch(
 );
 
 router.get(
+  "/:id/recipes",
+  validateParams(UserIdParamSchema),
+  validateQuery(PaginationQuerySchema),
+  usersController.getUserRecipes,
+);
+
+router.get(
   "/:id",
   validateParams(UserIdParamSchema),
   usersController.getUserProfile,
