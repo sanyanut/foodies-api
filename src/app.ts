@@ -13,7 +13,14 @@ import { generateOpenApiDocument } from "./common/swagger.ts";
 import { apiLimiter } from "./middleware/rate-limiter.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
 import { notFound } from "./middleware/not-found.ts";
+import authRoutes from "./modules/auth/auth.routes.ts";
 import healthRoutes from "./modules/health/health.routes.ts";
+import areasRouter from "./modules/areas/areas.routes.ts";
+import ingredientsRouter from "./modules/ingredients/ingredients.routes.ts";
+import categoriesRouter from "./modules/categories/categories.routes.ts";
+import usersRoutes from "./modules/users/users.routes.ts";
+import testimonialsRouter from "./modules/testimonials/testimonials.routes.ts";
+import recipesRoutes from "./modules/recipes/recipes.routes.ts";
 
 // Build and configure the Express application (BackEnd task 1: "spin up the dev
 // server — wire up modules, configure CORS, add an error handler"). The app is
@@ -31,7 +38,11 @@ export function createApp() {
       // Empty whitelist => reflect any origin ("*" for development). When
       // ALLOWED_ORIGINS is set, only those origins are allowed.
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        if (
+          !origin ||
+          allowedOrigins.length === 0 ||
+          allowedOrigins.includes(origin)
+        ) {
           callback(null, true);
         } else {
           callback(createHttpError(403, "Not allowed by CORS"));
@@ -40,7 +51,16 @@ export function createApp() {
       credentials: true,
     }),
   );
-  app.use(pinoHttp({ logger }));
+  app.use(
+    pinoHttp({
+      logger,
+      redact: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "res.headers.set-cookie",
+      ],
+    }),
+  );
   app.use(apiLimiter);
 
   app.use(express.json());
@@ -58,11 +78,22 @@ export function createApp() {
   });
 
   app.use("/health", healthRoutes);
+  app.use("/auth", authRoutes);
+  app.use("/areas", areasRouter);
+  app.use("/ingredients", ingredientsRouter);
+  app.use("/categories", categoriesRouter);
+  app.use("/users", usersRoutes);
+  app.use("/testimonials", testimonialsRouter);
+  app.use("/recipes", recipesRoutes);
 
   // ── API documentation (Swagger UI) ──
   // Never expose the API docs in production — mount them only outside prod.
   if (!isProduction) {
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(generateOpenApiDocument()));
+    app.use(
+      "/api-docs",
+      swaggerUi.serve,
+      swaggerUi.setup(generateOpenApiDocument()),
+    );
   }
 
   // ── 404 + centralised error handling (must come last) ──
