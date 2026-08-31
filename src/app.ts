@@ -7,7 +7,7 @@ import { pinoHttp } from "pino-http";
 import swaggerUi from "swagger-ui-express";
 import createHttpError from "http-errors";
 
-import { allowedOrigins, isProduction } from "./config/env.ts";
+import { allowedOrigins, docsEnabled } from "./config/env.ts";
 import logger from "./common/logger.ts";
 import { generateOpenApiDocument } from "./common/swagger.ts";
 import { apiLimiter } from "./middleware/rate-limiter.ts";
@@ -71,8 +71,8 @@ export function createApp() {
     res.json({
       name: "Foodies API",
       status: "ok",
-      // Swagger is disabled in production, so only advertise it elsewhere.
-      ...(isProduction ? {} : { docs: "/api-docs" }),
+      // Only advertise the docs when they are actually mounted.
+      ...(docsEnabled ? { docs: "/api-docs" } : {}),
       health: "/health",
     });
   });
@@ -87,8 +87,8 @@ export function createApp() {
   app.use("/recipes", recipesRoutes);
 
   // ── API documentation (Swagger UI) ──
-  // Never expose the API docs in production — mount them only outside prod.
-  if (!isProduction) {
+  // Off in production by default; opt in with ENABLE_DOCS. Always on elsewhere.
+  if (docsEnabled) {
     app.use(
       "/api-docs",
       swaggerUi.serve,

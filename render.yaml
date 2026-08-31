@@ -33,6 +33,10 @@ services:
         sync: false
       - key: POPULAR_RECIPES_CACHE_TTL
         value: "60"
+      # Serve Swagger UI at /api-docs in production. Off by default for security;
+      # set to "true" (here or in the dashboard) to expose the docs.
+      - key: ENABLE_DOCS
+        value: "true"
       # Cloudinary — set these in the Render dashboard.
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
