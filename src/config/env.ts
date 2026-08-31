@@ -22,6 +22,10 @@ const envSchema = z.object({
   // Comma-separated whitelist. Empty => allow all origins ("*") for dev.
   ALLOWED_ORIGINS: z.string().default(""),
 
+  // Serve the Swagger UI. Docs are always on outside production; in production
+  // they stay OFF unless this is explicitly turned on (e.g. "true").
+  ENABLE_DOCS: z.string().default("false"),
+
   POPULAR_RECIPES_CACHE_TTL: z.coerce.number().int().nonnegative().default(60),
 
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
@@ -48,3 +52,8 @@ export const isTest = env.NODE_ENV === "test";
 export const allowedOrigins = env.ALLOWED_ORIGINS.split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+// Whether to mount Swagger UI. Always available outside production; in
+// production only when ENABLE_DOCS is explicitly turned on.
+export const docsEnabled =
+  !isProduction || ["true", "1", "yes"].includes(env.ENABLE_DOCS.toLowerCase());
